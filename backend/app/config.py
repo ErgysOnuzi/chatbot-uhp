@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = "deepseek-flash"
     llm_temperature: float = 0.2
-    llm_max_tokens: int = 800
+    # Përfshin edhe tokenët e arsyetimit te modelet "reasoning", prandaj mos e ul shumë.
+    llm_max_tokens: int = 2000
 
     # Embeddings lokale (nuk varen nga LLM-i, mbeten të njëjta edhe me Ollama)
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"

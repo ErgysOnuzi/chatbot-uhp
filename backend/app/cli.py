@@ -3,6 +3,7 @@
 Përdorimi:
     python -m app.cli ingest ../docs/universiteti --category "Universiteti"
     python -m app.cli fetch-official ../docs/universiteti/burimet-zyrtare.json
+    python -m app.cli test-llm
 
 Nëse një dokument me të njëjtin titull ekziston, zëvendësohet (komanda mund të përsëritet).
 """
@@ -94,6 +95,8 @@ def main() -> None:
     ingest.add_argument("folder", type=Path)
     ingest.add_argument("--category", default=None)
 
+    sub.add_parser("test-llm", help="Provo lidhjen me modelin gjuhësor dhe shfaq çfarë kthen")
+
     official = sub.add_parser("fetch-official", help="Shkarko dhe ngarko PDF-të zyrtare nga lista JSON")
     official.add_argument("sources", type=Path)
 
@@ -102,6 +105,10 @@ def main() -> None:
         ingest_folder(args.folder, args.category)
     elif args.command == "fetch-official":
         fetch_official(args.sources)
+    elif args.command == "test-llm":
+        from .llm import diagnose
+
+        print(json.dumps(diagnose(), ensure_ascii=False, indent=2, default=str))
 
 
 if __name__ == "__main__":
