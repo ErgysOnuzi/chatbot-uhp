@@ -27,6 +27,19 @@ def test_scanned_pdf_goes_to_ocr(tmp_path: Path, monkeypatch):
     assert extract_text(f) == "Neni 1 nga OCR"
 
 
+def test_large_scanned_pdf_respects_ocr_page_limit(tmp_path: Path):
+    from pypdf import PdfWriter
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=200, height=200)
+    writer.add_blank_page(width=200, height=200)
+    f = tmp_path / "madh.pdf"
+    with f.open("wb") as out:
+        writer.write(out)
+    with pytest.raises(ValueError, match="kufirin OCR"):
+        extract_text(f, max_ocr_pages=1)
+
+
 def test_clean_text_collapses_whitespace():
     raw = "Afati   i provimit\r\n\r\n\r\n\r\nështë  janari   2027"
     assert clean_text(raw) == "Afati i provimit\n\nështë janari 2027"

@@ -17,7 +17,7 @@ NO_ANSWER = (
 # Fjalia e parë e NO_ANSWER përdoret për të dalluar kur modeli nuk e di përgjigjen.
 NO_ANSWER_MARK = "këtë informatë nuk e gjeta"
 
-SYSTEM_PROMPT = f"""Ti je asistenti virtual i Universitetit "Ukshin Hoti" Prizren.
+SYSTEM_PROMPT = f"""Ti je Asistenti i Studentëve i Universitetit "Ukshin Hoti" Prizren.
 Detyra jote është t'u përgjigjesh studentëve për provimet, oraret, afatet, procedurat
 administrative, diplomimin dhe informata të tjera të universitetit.
 
@@ -32,15 +32,23 @@ Rregullat:
 """
 
 
-def ingest_file(db: Session, path: Path, title: str, filename: str, category: str | None = None) -> Document:
-    text = clean_text(extract_text(path))
+def ingest_file(
+    db: Session,
+    path: Path,
+    title: str,
+    filename: str,
+    category: str | None = None,
+    source_url: str | None = None,
+    max_ocr_pages: int | None = None,
+) -> Document:
+    text = clean_text(extract_text(path, max_ocr_pages=max_ocr_pages))
     if not text:
         raise ValueError("Dokumenti nuk ka tekst që mund të lexohet (ndoshta është PDF i skanuar).")
     pieces = chunk_text(text, settings.chunk_size, settings.chunk_overlap)
     # Titulli i shtohet secilës pjesë që kërkimi të dijë nga cili dokument vjen.
     vectors = embed([f"{title}\n{piece}" for piece in pieces])
 
-    document = Document(title=title, filename=filename, category=category)
+    document = Document(title=title, filename=filename, category=category, source_url=source_url)
     document.chunks = [
         Chunk(position=i, content=piece, embedding=vector)
         for i, (piece, vector) in enumerate(zip(pieces, vectors))
@@ -90,5 +98,9 @@ def sources_from(hits: list[tuple[Chunk, float]]) -> list[dict]:
     seen: dict[int, dict] = {}
     for chunk, _ in hits:
         if chunk.document_id not in seen:
-            seen[chunk.document_id] = {"id": chunk.document_id, "title": chunk.document.title}
+            seen[chunk.document_id] = {
+                "id": chunk.document_id,
+                "title": chunk.document.title,
+                "source_url": chunk.document.source_url,
+            }
     return list(seen.values())

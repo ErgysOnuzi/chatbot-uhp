@@ -14,7 +14,7 @@ def needs_ocr(text: str, pages: int) -> bool:
     return pages > 0 and len(text.strip()) / pages < MIN_CHARS_PER_PAGE
 
 
-def _ocr_pdf(path: Path) -> str:
+def _ocr_pdf(path: Path, max_pages: int | None = None) -> str:
     """Lexon PDF të skanuar me Tesseract (gjuha shqipe + anglisht)."""
     try:
         import pytesseract
@@ -25,13 +25,22 @@ def _ocr_pdf(path: Path) -> str:
             "Tesseract me gjuhën shqipe (sqi) dhe Poppler, ose përdorni Docker."
         ) from exc
     try:
-        images = convert_from_path(str(path), dpi=300)
+        from pypdf import PdfReader
+
+        page_count = len(PdfReader(str(path)).pages)
+        if max_pages is not None and page_count > max_pages:
+            raise ValueError(
+                f"PDF-ja ka {page_count} faqe dhe tejkalon kufirin OCR prej {max_pages} faqesh."
+            )
+        images = convert_from_path(str(path), dpi=220)
         return "\n\n".join(pytesseract.image_to_string(img, lang="sqi+eng") for img in images)
+    except ValueError:
+        raise
     except Exception as exc:
         raise ValueError(f"OCR dështoi për këtë PDF: {exc}") from exc
 
 
-def extract_text(path: Path) -> str:
+def extract_text(path: Path, max_ocr_pages: int | None = None) -> str:
     suffix = path.suffix.lower()
     if suffix == ".pdf":
         from pypdf import PdfReader
@@ -39,7 +48,9 @@ def extract_text(path: Path) -> str:
         reader = PdfReader(str(path))
         text = "\n\n".join((page.extract_text() or "") for page in reader.pages)
         if needs_ocr(text, len(reader.pages)):
-            return _ocr_pdf(path)
+            if max_ocr_pages is None:
+                return _ocr_pdf(path)
+            return _ocr_pdf(path, max_pages=max_ocr_pages)
         return text
     if suffix == ".docx":
         import docx

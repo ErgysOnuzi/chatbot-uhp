@@ -115,7 +115,21 @@ export default function Chat() {
                   <ReactMarkdown>{m.content}</ReactMarkdown>
                 )}
                 {!m.pending && m.sources?.length > 0 && (
-                  <p className="sources">Burimi: {m.sources.map((s) => s.title).join(', ')}</p>
+                  <p className="sources">
+                    Burimi:{' '}
+                    {m.sources.map((s, index) => (
+                      <span key={s.id}>
+                        {index > 0 && ', '}
+                        {s.source_url?.startsWith('http://') || s.source_url?.startsWith('https://') ? (
+                          <a href={s.source_url} target="_blank" rel="noreferrer">
+                            {s.title}
+                          </a>
+                        ) : (
+                          s.title
+                        )}
+                      </span>
+                    ))}
+                  </p>
                 )}
                 {!m.pending && m.id && !m.error && (
                   <div className="feedback">

@@ -23,6 +23,7 @@ class Document(Base):
     title: Mapped[str] = mapped_column(String(255))
     filename: Mapped[str] = mapped_column(String(255))
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     chunks: Mapped[list["Chunk"]] = relationship(

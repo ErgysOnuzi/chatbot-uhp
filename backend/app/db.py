@@ -28,3 +28,6 @@ def init_db() -> None:
     from . import models  # noqa: F401  (regjistron modelet)
 
     Base.metadata.create_all(engine)
+    # create_all nuk i ndryshon tabelat ekzistuese, prandaj migrimi bëhet këtu.
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_url text"))
