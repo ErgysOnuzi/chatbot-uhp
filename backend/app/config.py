@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     top_k: int = 5
     # Distanca kosinus maksimale (0 = identike, 2 = e kundërt). Pjesët më larg se kjo injorohen.
     max_distance: float = 0.65
+    # Burimet e shfaqura: vetëm dokumentet brenda kësaj diference nga pjesa më e afërt
+    source_margin: float = 0.08
+    max_sources: int = 3
     chunk_size: int = 900
     chunk_overlap: int = 150
 

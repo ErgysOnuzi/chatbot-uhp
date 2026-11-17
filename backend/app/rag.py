@@ -9,6 +9,7 @@ from .chunking import chunk_text, clean_text, extract_text
 from .config import settings
 from .embeddings import embed, embed_one
 from .models import Chunk, Document
+from .sources import select_sources
 
 NO_ANSWER = (
     "Më vjen keq, këtë informatë nuk e gjeta në dokumentet zyrtare të universitetit. "
@@ -87,8 +88,8 @@ def build_messages(question: str, hits: list[tuple[Chunk, float]], history: list
 
 
 def sources_from(hits: list[tuple[Chunk, float]]) -> list[dict]:
-    seen: dict[int, dict] = {}
-    for chunk, _ in hits:
-        if chunk.document_id not in seen:
-            seen[chunk.document_id] = {"id": chunk.document_id, "title": chunk.document.title}
-    return list(seen.values())
+    return select_sources(
+        [(chunk.document_id, chunk.document.title, distance) for chunk, distance in hits],
+        settings.source_margin,
+        settings.max_sources,
+    )
