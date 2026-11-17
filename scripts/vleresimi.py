@@ -25,7 +25,13 @@ HERE = Path(__file__).resolve().parent
 def ask(base_url: str, question: str, conversation_id: str | None) -> dict:
     body = json.dumps({"message": question, "conversation_id": conversation_id}).encode("utf-8")
     request = urllib.request.Request(
-        f"{base_url}/api/chat", data=body, headers={"Content-Type": "application/json"}, method="POST"
+        f"{base_url}/api/chat",
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "chatbot-uhp-evaluation/0.1",
+        },
+        method="POST",
     )
     start = time.perf_counter()
     first_token = None
