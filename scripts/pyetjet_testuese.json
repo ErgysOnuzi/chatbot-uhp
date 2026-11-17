@@ -1,0 +1,22 @@
+[
+  {"nr": 1, "kategoria": "Programet", "pyetja": "Sa ECTS ka programi Teknologjitë e Informacionit dhe Telekomunikimit?", "pritet": "180 ECTS, 3 vjet"},
+  {"nr": 2, "kategoria": "Programet", "pyetja": "Në cilat gjuhë ofrohet programi TIT?", "pritet": "Shqip, turqisht, boshnjakisht"},
+  {"nr": 3, "kategoria": "Programet", "pyetja": "Cilat lëndë janë në semestrin e pestë të TIT?", "pritet": "Lista e 8 lëndëve të semestrit 5"},
+  {"nr": 4, "kategoria": "Programet", "pyetja": "Në cilin semestër është punimi i diplomës?", "pritet": "Semestri i gjashtë"},
+  {"nr": 5, "kategoria": "Tarifat", "pyetja": "Sa kushton dublikata e diplomës?", "pritet": "25 €"},
+  {"nr": 6, "kategoria": "Tarifat", "pyetja": "A paguhen studimet bachelor?", "pritet": "Jo, përveç rasteve të përsëritjes së vitit"},
+  {"nr": 7, "kategoria": "Tarifat", "pyetja": "Sa kushton mbrojtja e temës së masterit?", "pritet": "100 €"},
+  {"nr": 8, "kategoria": "Procedurat", "pyetja": "Si i paraqes provimet?", "pritet": "Në SMU, \"Paraqitja e provimeve\""},
+  {"nr": 9, "kategoria": "Procedurat", "pyetja": "Ku kontrollohet plagjiatura e temës?", "pritet": "Në Sistemin Antiplagjiaturë SAP"},
+  {"nr": 10, "kategoria": "Procedurat", "pyetja": "Ku i marr fletëpagesat?", "pritet": "Në SMU"},
+  {"nr": 11, "kategoria": "Procedurat", "pyetja": "Kur fillon semestri veror?", "pritet": "16 shkurt"},
+  {"nr": 12, "kategoria": "Procedurat", "pyetja": "Po semestri dimëror, kur mbaron?", "pritet": "15 janar", "vijuese": true},
+  {"nr": 13, "kategoria": "Regjistrimi", "pyetja": "Cilat dokumente duhen për regjistrim në vitin e parë?", "pritet": "Lista e 6 dokumenteve"},
+  {"nr": 14, "kategoria": "Regjistrimi", "pyetja": "Cilat lëndë ka provimi pranues në Shkenca Kompjuterike?", "pritet": "Informatikë dhe Matematikë"},
+  {"nr": 15, "kategoria": "Kontaktet", "pyetja": "Kush është dekan i Fakultetit të Shkencave Kompjuterike?", "pritet": "Prof. Asoc. Dr. Arsim Susuri"},
+  {"nr": 16, "kategoria": "Kontaktet", "pyetja": "Cili është orari i Qendrës së Shërbimit Studentor?", "pritet": "E hënë – e premte, 08:00–16:00"},
+  {"nr": 17, "kategoria": "Jashtë fushës", "pyetja": "Kush e fitoi Kupën e Botës në futboll 2022?", "pritet": "Refuzim"},
+  {"nr": 18, "kategoria": "Jashtë fushës", "pyetja": "Më shkruaj një recetë për byrek.", "pritet": "Refuzim"},
+  {"nr": 19, "kategoria": "Jashtë fushës", "pyetja": "Sa është nota ime në Matematikë I?", "pritet": "Refuzim (të dhëna personale)"},
+  {"nr": 20, "kategoria": "Jashtë fushës", "pyetja": "Cili është numri i telefonit të rektorit?", "pritet": "Refuzim (nuk është në dokumente)"}
+]

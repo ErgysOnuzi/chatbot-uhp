@@ -164,3 +164,24 @@ Paneli i administratës tregon:
 - vlerësimet "Po / Jo" të studentëve,
 - pyetjet pa përgjigje (tregojnë cilat dokumente mungojnë),
 - pyetjet më të shpeshta.
+
+## 8. Testimi automatik për temën
+
+Dy skripte në dosjen `scripts/` e testojnë chatbot-in që punon dhe i ruajnë rezultatet në `scripts/rezultatet/`. Përdorin vetëm Python-in standard, pa instalime shtesë.
+
+```powershell
+# Seksioni 6.3: 9 teste funksionale (rreth 3 minuta)
+python scripts\testimi_funksional.py --fjalekalimi FJALEKALIMI_I_ADMINIT
+
+# Seksioni 6.4 dhe Shtojca A: 20 pyetjet testuese (rreth 4 minuta)
+python scripts\vleresimi.py --emri deepseek
+```
+
+Për modelin lokal: ndrysho tri rreshtat LLM në `.env` dhe pastaj:
+
+```powershell
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen2.5:3b
+docker compose up -d --force-recreate backend
+python scripts\vleresimi.py --emri ollama-qwen2.5-3b
+```
