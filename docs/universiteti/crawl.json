@@ -1,0 +1,49 @@
+{
+  "seeds": [
+    "https://fshk.uni-prizren.com/",
+    "https://uni-prizren.com/studentet/",
+    "https://uni-prizren.com/upz/rregulloret-dhe-dokumentet/",
+    "https://uni-prizren.com/upz/kalendari-akademik/",
+    "https://uni-prizren.com/kushtet-e-pergjithshme-per-regjistrim/",
+    "https://uni-prizren.com/studentet/tarifat-per-studente/",
+    "https://uni-prizren.com/mbeshtetja-e-studenteve-me-bursa/",
+    "https://uni-prizren.com/upz/one-stop-student-services/",
+    "https://uni-prizren.com/biblioteka/",
+    "https://uni-prizren.com/zmj/erasmus/",
+    "https://uni-prizren.com/zmj/bursa-studimi/",
+    "https://uni-prizren.com/karriera/"
+  ],
+  "sitemaps": [
+    "https://fshk.uni-prizren.com/wp-sitemap.xml",
+    "https://uni-prizren.com/page-sitemap.xml"
+  ],
+  "allowed_domains": [
+    "uni-prizren.com",
+    "fshk.uni-prizren.com"
+  ],
+  "include_patterns": [
+    "^https://fshk\\.uni-prizren\\.com/",
+    "^https://uni-prizren\\.com/(studentet/|kushtet-e-pergjithshme-per-regjistrim/|mbeshtetja-e-studenteve-me-bursa/|biblioteka/|karriera/|parlamenti-studentor/|broshura/|zmj/|upz/(rregulloret-dhe-dokumentet/|kalendari-akademik/|one-stop-student-services/|statuti-i-universitetit/))"
+  ],
+  "exclude_patterns": [
+    "(?:rezultatet|rezultati|listat|lista|liste)(?:/|$|[-_.?])",
+    "/wp-admin",
+    "/wp-login",
+    "/wp-json",
+    "/xmlrpc\\.php",
+    "/feed(?:/|$)",
+    "/comments(?:/|$)",
+    "[?&]replytocom=",
+    "(?:[?&](?:s|search|query)=|/search(?:/|$)|/kerko(?:/|$))",
+    "/(?:tag|author)(?:/|$)",
+    "^https://uni-prizren\\.com/en/",
+    "facebook\\.com|instagram\\.com|linkedin\\.com|youtube\\.com|twitter\\.com|x\\.com"
+  ],
+  "max_depth": 3,
+  "delay": 1.5,
+  "max_pages": 400,
+  "timeout": 30,
+  "retries": 3,
+  "max_runtime_seconds": 900,
+  "max_ocr_pages": 40
+}

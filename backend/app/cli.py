@@ -4,6 +4,7 @@ Përdorimi:
     python -m app.cli ingest ../docs/universiteti --category "Universiteti"
     python -m app.cli fetch-official ../docs/universiteti/burimet-zyrtare.json
     python -m app.cli test-llm
+    python -m app.cli crawl --config ../docs/universiteti/crawl.json [--max-pages 400] [--dry-run]
 
 Nëse një dokument me të njëjtin titull ekziston, zëvendësohet (komanda mund të përsëritet).
 """
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from .chunking import SUPPORTED_EXTENSIONS
 from .config import settings
+from .crawler import run_crawl
 from .db import SessionLocal, init_db
 from .models import Document
 from .rag import ingest_file
@@ -40,14 +42,20 @@ def _replace_existing(db: Session, title: str) -> None:
     db.commit()
 
 
-def _ingest_one(db: Session, source: Path, title: str, category: str | None) -> None:
+def _ingest_one(
+    db: Session,
+    source: Path,
+    title: str,
+    category: str | None,
+    source_url: str | None = None,
+) -> None:
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
     stored = upload_dir / f"{uuid.uuid4().hex}{source.suffix.lower()}"
     shutil.copy(source, stored)
     try:
         _replace_existing(db, title)
-        document = ingest_file(db, stored, title, stored.name, category)
+        document = ingest_file(db, stored, title, stored.name, category, source_url=source_url)
         print(f"OK     {title}: {len(document.chunks)} pjesë")
     except ValueError as exc:
         stored.unlink(missing_ok=True)
@@ -84,11 +92,11 @@ def fetch_official(sources_file: Path) -> None:
                     target.unlink(missing_ok=True)
                     print(f"GABIM  {item['title']}: shkarkimi dështoi ({exc})")
                     continue
-            _ingest_one(db, target, item["title"], item.get("category"))
+            _ingest_one(db, target, item["title"], item.get("category"), item["url"])
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Mjete për chatbot-in")
+    parser = argparse.ArgumentParser(description="Mjete për Asistentin e Studentëve")
     sub = parser.add_subparsers(dest="command", required=True)
 
     ingest = sub.add_parser("ingest", help="Ngarko të gjithë dokumentet nga një dosje")
@@ -100,6 +108,11 @@ def main() -> None:
     official = sub.add_parser("fetch-official", help="Shkarko dhe ngarko PDF-të zyrtare nga lista JSON")
     official.add_argument("sources", type=Path)
 
+    crawl = sub.add_parser("crawl", help="Gjej dhe ngarko faqet dhe dokumentet publike")
+    crawl.add_argument("--config", required=True, type=Path)
+    crawl.add_argument("--max-pages", type=int, default=None)
+    crawl.add_argument("--dry-run", action="store_true")
+
     args = parser.parse_args()
     if args.command == "ingest":
         ingest_folder(args.folder, args.category)
@@ -109,6 +122,8 @@ def main() -> None:
         from .llm import diagnose
 
         print(json.dumps(diagnose(), ensure_ascii=False, indent=2, default=str))
+    elif args.command == "crawl":
+        run_crawl(args.config, max_pages=args.max_pages, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
