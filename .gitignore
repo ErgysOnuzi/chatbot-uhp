@@ -12,3 +12,4 @@ data/
 node_modules/
 frontend/dist/
 .pytest_cache/
+scripts/rezultatet/
