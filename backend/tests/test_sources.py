@@ -14,3 +14,8 @@ def test_limit_and_order():
 
 def test_empty():
     assert select_sources([]) == []
+
+
+def test_source_url_is_kept():
+    hits = [(7, "Tarifat", 0.2, "https://uni-prizren.com/studentet/tarifat-per-studente/")]
+    assert select_sources(hits)[0]["source_url"] == "https://uni-prizren.com/studentet/tarifat-per-studente/"

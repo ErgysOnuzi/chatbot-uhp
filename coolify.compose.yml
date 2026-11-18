@@ -1,0 +1,70 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: "./source/chatbot-uhp/backend"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      UPLOAD_DIR: /app/data/uploads
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: https://chatbot-uhp.ergys.dev
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE}
+    volumes:
+      - uploads:/app/data/uploads
+      - crawl-data:/app/data
+      - ./source/chatbot-uhp/docs:/app/docs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+
+  frontend:
+    build:
+      context: "./source/chatbot-uhp/frontend"
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  db-data:
+  uploads:
+  crawl-data:

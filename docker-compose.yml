@@ -29,6 +29,7 @@ services:
       UPLOAD_DIR: /app/data/uploads
     volumes:
       - uploads:/app/data/uploads
+      - crawl-data:/app/data
       - ./docs:/app/docs:ro
     depends_on:
       db:
@@ -53,4 +54,5 @@ services:
 volumes:
   db-data:
   uploads:
+  crawl-data:
   ollama:

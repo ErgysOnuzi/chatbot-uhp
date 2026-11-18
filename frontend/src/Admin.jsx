@@ -213,7 +213,15 @@ export default function Admin() {
             <tbody>
               {documents.map((doc) => (
                 <tr key={doc.id}>
-                  <td>{doc.title}</td>
+                  <td>
+                    {doc.source_url ? (
+                      <a href={doc.source_url} target="_blank" rel="noreferrer">
+                        {doc.title}
+                      </a>
+                    ) : (
+                      doc.title
+                    )}
+                  </td>
                   <td>{doc.category || '–'}</td>
                   <td>{doc.chunks}</td>
                   <td>{new Date(doc.created_at).toLocaleDateString('sq-AL')}</td>

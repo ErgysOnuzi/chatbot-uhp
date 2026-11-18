@@ -61,6 +61,7 @@ def list_documents(db: Session = Depends(get_db), _: str = Depends(require_admin
             "title": doc.title,
             "filename": doc.filename,
             "category": doc.category,
+            "source_url": doc.source_url,
             "chunks": count,
             "created_at": doc.created_at.isoformat(),
         }

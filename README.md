@@ -108,6 +108,35 @@ Komandat mund të përsëriten: dokumenti me të njëjtin titull zëvendësohet,
 
 Dokumente të reja (oraret e provimeve, njoftime) ngarkohen nga paneli: `#/admin` → "Ngarko dokument të ri".
 
+### Crawler-i i faqeve zyrtare
+
+Crawler-i lexon vetëm faqe publike të `uni-prizren.com` dhe nënfushave të saj. Ai respekton
+`robots.txt`, pret konfigurueshëm mes kërkesave (1.5 sekonda si parazgjedhje), nuk plotëson
+formularë dhe nuk kyçet askund. Konfigurimi është te `docs/universiteti/crawl.json`.
+
+Për të parë URL-të që do të lexoheshin, pa ndryshuar bazën e të dhënave:
+
+```bash
+cd backend
+python -m app.cli crawl --config ../docs/universiteti/crawl.json --max-pages 400 --dry-run
+```
+
+Për një crawl të plotë dhe ingestim në bazën ekzistuese:
+
+```bash
+docker compose exec backend python -m app.cli crawl --config /app/docs/universiteti/crawl.json --max-pages 400
+```
+
+Crawler-i ruan `data/crawl_manifest.json` për të anashkaluar përmbajtjen e pandryshuar dhe
+shkruan përmbledhjen te `data/crawl_report.md`. Në Docker të dy skedarët ruhen në volumin
+`crawl-data`. Faqet e rezultateve dhe listave të studentëve përjashtohen me pattern-et
+`rezultatet`, `rezultati`, `listat`, `lista` dhe `liste`; lidhjet me Google Drive raportohen,
+por nuk ndiqen.
+
+Për t'i mbajtur të dhënat të freskëta, përsëritni të njëjtën komandë çdo muaj ose vendoseni
+në një cron job mujor. Kontrolloni gjithmonë raportin, sidomos dështimet dhe PDF-të e reja që
+kanë kaluar nëpër OCR.
+
 ## 4. Testet
 
 ```bash
