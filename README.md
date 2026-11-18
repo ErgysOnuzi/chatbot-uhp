@@ -137,6 +137,20 @@ Për t'i mbajtur të dhënat të freskëta, përsëritni të njëjtën komandë 
 në një cron job mujor. Kontrolloni gjithmonë raportin, sidomos dështimet dhe PDF-të e reja që
 kanë kaluar nëpër OCR.
 
+`crawl.json` përjashton edhe dokumentet e seksionit "Dokumentet e shfuqizuara" të faqes së
+rregulloreve dhe dokumentet e brendshme për stafin. Crawler-i nuk fshin dokumente që janë
+ngarkuar më parë, prandaj pas ndryshimit të rregullave pastrojeni bazën:
+
+```bash
+# 1. Shiko listën e dokumenteve që do të fshiheshin
+docker compose exec backend python -m app.cli prune-excluded --config /app/docs/universiteti/crawl.json
+# 2. Nëse lista është në rregull, fshiji
+docker compose exec backend python -m app.cli prune-excluded --config /app/docs/universiteti/crawl.json --apply
+```
+
+Kur universiteti e kalon një rregullore te "Dokumentet e shfuqizuara", shtoni adresën e saj te
+`exclude_patterns` në `crawl.json` dhe përsëritni pastrimin.
+
 ## 4. Testet
 
 ```bash
