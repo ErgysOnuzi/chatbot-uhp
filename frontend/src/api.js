@@ -69,6 +69,13 @@ export async function login(username, password) {
 
 export const listDocuments = (token) => adminRequest('/documents', token)
 export const getStats = (token) => adminRequest('/stats', token)
+
+const postJson = (token, path, body) =>
+  adminRequest(path, token, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+export const startFetchOfficial = (token) => postJson(token, '/jobs/fetch-official', {})
+export const startCrawl = (token) => postJson(token, '/jobs/crawl', {})
+export const pruneExcluded = (token, apply) => postJson(token, '/prune-excluded', { apply })
+export const getJob = (token, id) => adminRequest(`/jobs/${id}`, token)
 export const deleteDocument = (token, id) => adminRequest(`/documents/${id}`, token, { method: 'DELETE' })
 
 export function uploadDocument(token, file, title, category) {

@@ -53,6 +53,7 @@ def _ingest_one(
     title: str,
     category: str | None,
     source_url: str | None = None,
+    log=print,
 ) -> None:
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -61,10 +62,10 @@ def _ingest_one(
     try:
         _replace_existing(db, title, source_url)
         document = ingest_file(db, stored, title, stored.name, category, source_url=source_url)
-        print(f"OK     {title}: {len(document.chunks)} pjesë")
+        log(f"OK     {title}: {len(document.chunks)} pjesë")
     except ValueError as exc:
         stored.unlink(missing_ok=True)
-        print(f"GABIM  {title}: {exc}")
+        log(f"GABIM  {title}: {exc}")
 
 
 def ingest_folder(folder: Path, category: str | None) -> None:
@@ -78,29 +79,32 @@ def ingest_folder(folder: Path, category: str | None) -> None:
             _ingest_one(db, path, _title_from_markdown(path), category)
 
 
-def fetch_official(sources_file: Path) -> None:
+def fetch_official(sources_file: Path, log=print) -> None:
     """Shkarkon PDF-të zyrtare nga faqja e universitetit dhe i ngarkon (me OCR kur duhet)."""
+    fetch_official_items(json.loads(sources_file.read_text(encoding="utf-8")), log=log)
+
+
+def fetch_official_items(sources: list[dict], log=print) -> None:
     init_db()
-    sources = json.loads(sources_file.read_text(encoding="utf-8"))
     download_dir = Path(settings.upload_dir).parent / "zyrtare"
     download_dir.mkdir(parents=True, exist_ok=True)
     with SessionLocal() as db:
         for item in sources:
             target = download_dir / Path(item["url"]).name
             if not target.exists():
-                print(f"Duke shkarkuar: {item['title']}")
+                log(f"Duke shkarkuar: {item['title']}")
                 request = urllib.request.Request(item["url"], headers={"User-Agent": "chatbot-uhp/0.1"})
                 try:
                     with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as out:
                         shutil.copyfileobj(response, out)
                 except Exception as exc:
                     target.unlink(missing_ok=True)
-                    print(f"GABIM  {item['title']}: shkarkimi dështoi ({exc})")
+                    log(f"GABIM  {item['title']}: shkarkimi dështoi ({exc})")
                     continue
-            _ingest_one(db, target, item["title"], item.get("category"), item["url"])
+            _ingest_one(db, target, item["title"], item.get("category"), item["url"], log=log)
 
 
-def prune_excluded(config_path: Path, apply: bool) -> None:
+def prune_excluded(config_path: Path, apply: bool, log=print) -> list[dict]:
     """Gjen dokumentet në bazë që rregullat aktuale të crawl.json i përjashtojnë dhe, me --apply, i fshin.
 
     Përdoret pas ndryshimit të rregullave (p.sh. dokumentet e shfuqizuara), sepse crawler-i
@@ -116,13 +120,15 @@ def prune_excluded(config_path: Path, apply: bool) -> None:
             if decision.kind == "skip" or is_internal_document(document.source_url, document.title):
                 to_delete.append((document, decision.reason or "dokument i brendshëm"))
         for document, reason in to_delete:
-            print(f"{'FSHIHET' if apply else 'do fshihej'}  [{reason}]  {document.title}  <{document.source_url}>")
+            log(f"{'FSHIHET' if apply else 'do fshihej'}  [{reason}]  {document.title}  <{document.source_url}>")
             if apply:
                 (Path(settings.upload_dir) / document.filename).unlink(missing_ok=True)
                 db.delete(document)
+        result = [{"id": d.id, "title": d.title, "source_url": d.source_url, "reason": r} for d, r in to_delete]
         if apply:
             db.commit()
-        print(f"\n{len(to_delete)} dokumente {'u fshinë' if apply else 'do të fshiheshin; nise përsëri me --apply për t' + chr(39) + 'i fshirë'}.")
+        log(f"\n{len(to_delete)} dokumente {'u fshinë' if apply else 'do të fshiheshin; nise përsëri me --apply për t' + chr(39) + 'i fshirë'}.")
+    return result
 
 
 def main() -> None:

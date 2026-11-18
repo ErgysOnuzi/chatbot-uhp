@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { deleteDocument, getStats, listDocuments, login, uploadDocument } from './api.js'
+import { deleteDocument, getJob, getStats, listDocuments, login, pruneExcluded, startCrawl, startFetchOfficial, uploadDocument } from './api.js'
 
 const TOKEN_KEY = 'uhp-admin-token'
 
@@ -66,6 +66,8 @@ export default function Admin() {
   const [category, setCategory] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [job, setJob] = useState(null)
+  const [pruneList, setPruneList] = useState(null)
 
   const logout = useCallback(() => {
     saveToken(null)
@@ -94,6 +96,40 @@ export default function Admin() {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  useEffect(() => {
+    if (!job || job.status !== 'running' || !token) return undefined
+    const timer = setTimeout(async () => {
+      try {
+        const next = await getJob(token, job.id)
+        setJob(next)
+        if (next.status !== 'running') refresh()
+      } catch (err) {
+        handleError(err)
+      }
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [job, token, refresh, handleError])
+
+  async function runJob(start) {
+    try {
+      setJob(await start(token))
+    } catch (err) {
+      handleError(err)
+    }
+  }
+
+  async function prune(apply) {
+    if (apply && !window.confirm(`Të fshihen ${pruneList?.count ?? ''} dokumente? Ky veprim nuk kthehet.`)) return
+    try {
+      const result = await pruneExcluded(token, apply)
+      setPruneList(apply ? null : result)
+      setNotice(apply ? `U fshinë ${result.count} dokumente.` : `${result.count} dokumente do të fshiheshin.`)
+      if (apply) refresh()
+    } catch (err) {
+      handleError(err)
+    }
+  }
 
   if (!token) {
     return (
@@ -194,6 +230,32 @@ export default function Admin() {
           {busy ? 'Duke ngarkuar…' : 'Ngarko'}
         </button>
       </form>
+
+      <div className="card">
+        <h3>Mirëmbajtja e bazës së njohurive</h3>
+        <p className="hint">Punët ekzekutohen në server, një nga një. Crawl-i mund të zgjasë deri në 15 minuta.</p>
+        <div className="actions">
+          <button onClick={() => runJob(startFetchOfficial)} disabled={job?.status === 'running'}>Ngarko rregulloret zyrtare</button>
+          <button onClick={() => runJob(startCrawl)} disabled={job?.status === 'running'}>Rifresko faqet (crawl)</button>
+          <button className="ghost" onClick={() => prune(false)}>Shiko dokumentet e vjetra</button>
+        </div>
+        {pruneList && pruneList.count > 0 && (
+          <>
+            <ul className="prune-list">
+              {pruneList.documents.map((d) => (
+                <li key={d.id}>{d.title} <span className="count">({d.reason})</span></li>
+              ))}
+            </ul>
+            <button className="danger" onClick={() => prune(true)}>Fshi këto {pruneList.count} dokumente</button>
+          </>
+        )}
+        {job && (
+          <div className="job">
+            <strong>{job.kind}: {job.status === 'running' ? 'duke punuar…' : job.status === 'done' ? 'përfundoi' : 'dështoi'}</strong>
+            <pre>{job.log.join('\n')}</pre>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h3>Dokumentet ({documents.length})</h3>

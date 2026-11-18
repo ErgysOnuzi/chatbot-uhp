@@ -17,6 +17,7 @@ from ..config import settings
 from ..db import get_db
 from ..models import Chunk, Conversation, Document, Message
 from ..rag import ingest_file
+from .. import jobs
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -148,3 +149,144 @@ def stats(db: Session = Depends(get_db), _: str = Depends(require_admin)):
         "recent_unanswered": list(recent_unanswered),
         "top_questions": [{"question": q, "count": n} for q, n in top_questions],
     }
+
+
+# ---------- Punë në sfond: rregulloret zyrtare, pastrimi dhe crawl ----------
+
+IMPORT_HOSTS = ("uni-prizren.com",)
+
+
+class ImportUrlRequest(BaseModel):
+    url: str
+    title: str
+    category: str | None = None
+
+
+class PruneRequest(BaseModel):
+    apply: bool = False
+    config: dict | None = None
+
+
+class CrawlRequest(BaseModel):
+    max_pages: int | None = None
+    config: dict | None = None  # nëse mungon, lexohet docs/universiteti/crawl.json
+
+
+class FetchOfficialRequest(BaseModel):
+    sources: list[ImportUrlRequest] | None = None  # nëse mungon, lexohet burimet-zyrtare.json
+
+
+def _allowed_import_url(url: str) -> bool:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    return parsed.scheme == "https" and any(host == h or host.endswith("." + h) for h in IMPORT_HOSTS)
+
+
+def _start(kind, work):
+    try:
+        return jobs.start_job(kind, work)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.post("/jobs/fetch-official", status_code=202)
+def job_fetch_official(req: FetchOfficialRequest | None = None, _: str = Depends(require_admin)):
+    """Shkarkon dhe ngarkon rregulloret (nga kërkesa ose nga docs/universiteti/burimet-zyrtare.json)."""
+    import json
+
+    from ..cli import fetch_official_items
+
+    if req and req.sources:
+        items = [s.model_dump() for s in req.sources]
+    else:
+        path = settings.docs_path / "universiteti" / "burimet-zyrtare.json"
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"Nuk u gjet {path}; dërgoni listën te 'sources'.")
+        items = json.loads(path.read_text(encoding="utf-8"))
+    bad = [i["url"] for i in items if not _allowed_import_url(i["url"])]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Adresa të palejuara: {bad[:3]}")
+    return _start("fetch-official", lambda log: fetch_official_items(items, log=log))
+
+
+@router.post("/jobs/import-url", status_code=202)
+def job_import_url(req: ImportUrlRequest, _: str = Depends(require_admin)):
+    """Shkarkon dhe ngarkon një dokument nga faqja e universitetit (vetëm uni-prizren.com)."""
+    from ..cli import fetch_official_items
+
+    if not _allowed_import_url(req.url):
+        raise HTTPException(status_code=400, detail="Lejohen vetëm adresat https të uni-prizren.com.")
+    item = {"title": req.title.strip(), "url": req.url, "category": (req.category or "").strip() or None}
+    return _start("import-url", lambda log: fetch_official_items([item], log=log))
+
+
+@router.post("/jobs/crawl", status_code=202)
+def job_crawl(req: CrawlRequest, _: str = Depends(require_admin)):
+    """Nis crawler-in me docs/universiteti/crawl.json."""
+    from ..crawler import run_crawl
+
+    import json
+    import tempfile
+
+    if req.config:
+        handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8")
+        json.dump(req.config, handle, ensure_ascii=False)
+        handle.close()
+        config = Path(handle.name)
+    else:
+        config = settings.docs_path / "universiteti" / "crawl.json"
+    if not config.exists():
+        raise HTTPException(status_code=404, detail=f"Nuk u gjet {config}; dërgoni konfigurimin te 'config'.")
+
+    def work(log):
+        stats = run_crawl(config, max_pages=req.max_pages)
+        report = Path(settings.upload_dir).parent / "crawl_report.md"
+        try:
+            from ..crawler import crawl_paths
+
+            report = crawl_paths()[1]
+        except Exception:  # noqa: BLE001
+            pass
+        if Path(report).exists():
+            for line in Path(report).read_text(encoding="utf-8").splitlines()[:150]:
+                log(line)
+        return str(stats)
+
+    return _start("crawl", work)
+
+
+@router.post("/prune-excluded")
+def prune(req: PruneRequest, _: str = Depends(require_admin)):
+    """Liston (ose me apply=true fshin) dokumentet që rregullat e crawl.json i përjashtojnë."""
+    from ..cli import prune_excluded
+
+    import json
+    import tempfile
+
+    if req.config:
+        handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8")
+        json.dump(req.config, handle, ensure_ascii=False)
+        handle.close()
+        config = Path(handle.name)
+    else:
+        config = settings.docs_path / "universiteti" / "crawl.json"
+    if not config.exists():
+        raise HTTPException(status_code=404, detail=f"Nuk u gjet {config}; dërgoni konfigurimin te 'config'.")
+    lines: list[str] = []
+    result = prune_excluded(config, req.apply, log=lines.append)
+    return {"applied": req.apply, "count": len(result), "documents": result}
+
+
+@router.get("/jobs")
+def job_list(_: str = Depends(require_admin)):
+    return jobs.list_jobs()
+
+
+@router.get("/jobs/{job_id}")
+def job_status(job_id: str, _: str = Depends(require_admin)):
+    job = jobs.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Puna nuk u gjet.")
+    return job

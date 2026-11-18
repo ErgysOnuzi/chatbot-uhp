@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 10
     max_upload_mb: int = 20
     upload_dir: str = "data/uploads"
+    # Dosja docs/ e projektit (në Docker montohet te /app/docs)
+    docs_dir: str = ""
+
+    @property
+    def docs_path(self) -> "Path":
+        from pathlib import Path
+
+        if self.docs_dir:
+            return Path(self.docs_dir)
+        docker = Path("/app/docs")
+        return docker if docker.exists() else Path(__file__).resolve().parents[2] / "docs"
 
     @property
     def cors_origin_list(self) -> list[str]:
