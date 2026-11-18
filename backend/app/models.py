@@ -1,9 +1,9 @@
 """Modelet e bazës së të dhënave."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, SmallInteger, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .config import settings
@@ -24,6 +24,9 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String(255))
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Data e publikimit (lajme) ose e ngarkimit (dokumente); lajmet e vjetra nuk përdoren si burim.
+    published_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    is_news: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     chunks: Mapped[list["Chunk"]] = relationship(
@@ -41,6 +44,8 @@ class Chunk(Base):
     position: Mapped[int] = mapped_column(Integer)
     content: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))
+    # Teksti pa diakritikë për kërkimin me fjalë kyçe (full-text).
+    search_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     document: Mapped[Document] = relationship(back_populates="chunks")
 

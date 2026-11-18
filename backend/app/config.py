@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     # Kërkimi në dokumente (RAG)
     top_k: int = 5
+    # Kërkimi hibrid: sa kandidatë merren nga secila metodë para bashkimit
+    hybrid_search: bool = True
+    candidate_pool: int = 20
+    # Lajmet më të vjetra se kaq ditë nuk përdoren si burim
+    news_max_age_days: int = 365
     # Distanca kosinus maksimale (0 = identike, 2 = e kundërt). Pjesët më larg se kjo injorohen.
     max_distance: float = 0.65
     # Burimet e shfaqura: vetëm dokumentet brenda kësaj diference nga pjesa më e afërt
