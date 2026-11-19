@@ -45,12 +45,17 @@ def init_db() -> None:
 
 def _backfill() -> None:
     """Plotëson kolonat e reja për dokumentet e ngarkuara para kërkimit hibrid dhe datave."""
-    from .search import fold, news_date_from_text, upload_date
+    from .search import index_text, news_date_from_text, upload_date
 
     with engine.begin() as conn:
-        rows = conn.execute(text("SELECT id, content FROM chunks WHERE search_text IS NULL")).all()
+        # Pjesët pa search_text, si dhe ato me fjalë "anti..." (indeksi i tyre u zgjerua më vonë).
+        rows = conn.execute(
+            text("SELECT id, content FROM chunks WHERE search_text IS NULL OR content ILIKE '%anti%'")
+        ).all()
         for chunk_id, content in rows:
-            conn.execute(text("UPDATE chunks SET search_text = :t WHERE id = :i"), {"t": fold(content), "i": chunk_id})
+            conn.execute(
+                text("UPDATE chunks SET search_text = :t WHERE id = :i"), {"t": index_text(content), "i": chunk_id}
+            )
 
         documents = conn.execute(
             text(

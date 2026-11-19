@@ -11,7 +11,7 @@ def test_fold_removes_diacritics_and_punctuation():
 
 def test_query_terms_drop_stopwords_and_handle_no_diacritics():
     # Pyetja e shkruar pa ë dhe ç jep të njëjtat terma si ajo me shkronja të sakta.
-    expected = ["lende", "semestrin", "gjashte", "6", "tit"]
+    expected = ["lende", "semestrin", "gjashte", "6", "vi", "tit"]
     assert query_terms("Cilat lëndë janë në semestrin e gjashtë të TIT?") == expected
     assert query_terms("cilat lende jane ne semestrin e gjashte te TIT") == expected
 
@@ -61,3 +61,26 @@ def test_ordinal_words_match_numbers_in_documents():
     document = fold("Semestri 6: Përmbajtja dinamike e inxhinierisë së web-it, Kompjutimi Cloud")
     assert matched_terms(query_terms("semestri i gjashtë"), document) >= 2
     assert "gjashte" in query_terms("semestri 6")
+
+
+def test_ordinals_expand_to_roman_numerals():
+    terms = query_terms("Cilat lëndë janë në semestrin e pestë të TIT?")
+    assert "5" in terms and "v" in terms
+    assert "vi" in query_terms("Semestri 6")
+    assert "5" in query_terms("lëndët e semestrit V")
+    # "i" nuk shtohet si numër romak, sepse është nyje
+    assert "i" not in query_terms("viti i parë")
+
+
+def test_short_terms_match_whole_words_only():
+    assert matched_terms(["5"], fold("tarifa 500 euro, 50 orë")) == 0
+    assert matched_terms(["v", "semestrin"], fold("Viti III - Semestri V dhe VI")) == 2
+
+
+def test_index_text_adds_root_of_anti_compounds():
+    from app.search import index_text
+
+    text = index_text("SAP – Sistemi Antiplagjiaturë i Universitetit")
+    assert "antiplagjiature" in text.split() and "plagjiature" in text.split()
+    assert matched_terms(query_terms("Ku kontrollohet plagjiatura?"), text) >= 1
+    assert index_text("Teksti pa fjalë të përbëra") == fold("Teksti pa fjalë të përbëra")

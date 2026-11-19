@@ -1,0 +1,10 @@
+[Unit]
+Description=Kontrollo GitHub çdo 5 minuta për versione të reja të chatbot-it
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

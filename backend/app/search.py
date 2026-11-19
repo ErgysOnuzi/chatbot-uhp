@@ -28,6 +28,10 @@ ORDINALS = {
     "gjashte": "6", "shtate": "7", "tete": "8", "nente": "9", "dhjete": "10",
 }
 _ORDINAL_WORDS = {digit: word for word, digit in ORDINALS.items()}
+# Dokumentet e programeve i shënojnë semestrat me numra romakë ("Viti III - Semestri V dhe VI").
+# "I" mungon qëllimisht, sepse në shqip "i" është nyje dhe do të gjendej kudo.
+ROMAN = {"2": "ii", "3": "iii", "4": "iv", "5": "v", "6": "vi", "7": "vii", "8": "viii", "9": "ix", "10": "x"}
+_ROMAN_DIGITS = {roman: digit for digit, roman in ROMAN.items()}
 
 
 def fold(text: str) -> str:
@@ -35,6 +39,16 @@ def fold(text: str) -> str:
     text = unicodedata.normalize("NFKD", text.lower())
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return " ".join(_TOKEN_RE.findall(text))
+
+
+def index_text(text: str) -> str:
+    """Teksti për indeksin me fjalë kyçe: si fold(), plus rrënja e fjalëve të përbëra me "anti".
+
+    Kështu "antiplagjiaturë" gjendet edhe kur studenti pyet për "plagjiaturë".
+    """
+    folded = fold(text)
+    extra = sorted({w[4:] for w in folded.split() if w.startswith("anti") and len(w) >= 9})
+    return f"{folded} {' '.join(extra)}" if extra else folded
 
 
 def stem(term: str) -> str:
@@ -47,9 +61,11 @@ def stem(term: str) -> str:
 def query_terms(query: str) -> list[str]:
     seen: list[str] = []
     for token in fold(query).split():
-        if token in STOPWORDS or (len(token) < 2 and not token.isdigit()):
+        if token in STOPWORDS or (len(token) < 2 and not token.isdigit() and token not in _ROMAN_DIGITS):
             continue
-        for variant in (token, ORDINALS.get(token), _ORDINAL_WORDS.get(token)):
+        digit = ORDINALS.get(token) or _ROMAN_DIGITS.get(token) or (token if token in _ORDINAL_WORDS else None)
+        variants = (token, digit, _ORDINAL_WORDS.get(digit or ""), ROMAN.get(digit or ""))
+        for variant in variants:
             if variant and variant not in seen:
                 seen.append(variant)
     return seen[:14]
@@ -70,7 +86,8 @@ def matched_terms(terms: list[str], folded_text: str) -> int:
     count = 0
     for term in terms:
         root = stem(term)
-        if any(word.startswith(root) for word in words):
+        # Termat e shkurtër (numrat, numrat romakë) duhet të përputhen saktë, jo si fillim fjale.
+        if any(word == root if len(root) < 3 else word.startswith(root) for word in words):
             count += 1
     return count
 
@@ -108,3 +125,25 @@ def news_date_from_text(text: str) -> date | None:
         return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
     except ValueError:
         return None
+
+
+def rank_keyword_rows(rows, terms: list[str], limit: int, per_document: int = 2):
+    """Rirendit rezultatet me fjalë kyçe: së pari sipas numrit të termave të ndryshëm të pyetjes që
+    përmban pjesa, pastaj sipas ts_rank, me jo më shumë se `per_document` pjesë nga i njëjti dokument.
+
+    Pa këtë, faqet arkivë që e përsërisin një fjalë (p.sh. "provimi" te oraret) i zënë të gjitha vendet.
+    """
+    scored = sorted(
+        rows,
+        key=lambda r: (-matched_terms(terms, r[0].search_text or fold(r[0].content)), -float(r[2])),
+    )
+    result, per_doc = [], {}
+    for row in scored:
+        doc_id = row[0].document_id
+        if per_doc.get(doc_id, 0) >= per_document:
+            continue
+        per_doc[doc_id] = per_doc.get(doc_id, 0) + 1
+        result.append(row)
+        if len(result) >= limit:
+            break
+    return result

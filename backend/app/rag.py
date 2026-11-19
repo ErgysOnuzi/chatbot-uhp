@@ -10,7 +10,10 @@ from .chunking import chunk_text, clean_text, extract_text
 from .config import settings
 from .embeddings import embed, embed_one
 from .models import Chunk, Document
-from .search import fold, is_stale, matched_terms, news_date_from_text, query_terms, rrf, to_tsquery, upload_date
+from .search import (
+    fold, index_text, is_stale, matched_terms, news_date_from_text, query_terms, rank_keyword_rows, rrf, to_tsquery,
+    upload_date,
+)
 from .sources import select_sources
 
 NO_ANSWER = (
@@ -65,7 +68,7 @@ def ingest_file(
         is_news=is_news or news_date is not None,
     )
     document.chunks = [
-        Chunk(position=i, content=piece, embedding=vector, search_text=fold(piece))
+        Chunk(position=i, content=piece, embedding=vector, search_text=index_text(piece))
         for i, (piece, vector) in enumerate(zip(pieces, vectors))
     ]
     db.add(document)
@@ -108,10 +111,11 @@ def retrieve(db: Session, query: str, trace: dict | None = None) -> list[tuple[C
         ts = func.to_tsquery(simple, tsquery)
         vector_col = func.to_tsvector(simple, func.coalesce(Chunk.search_text, literal_column("''")))
         rank = func.ts_rank_cd(vector_col, ts).label("rank")
-        keyword_rows = db.execute(
+        candidates = db.execute(
             select(Chunk, distance, rank).join(Chunk.document).options(joinedload(Chunk.document))
-            .where(fresh, vector_col.op("@@")(ts)).order_by(rank.desc()).limit(pool)
+            .where(fresh, vector_col.op("@@")(ts)).order_by(rank.desc()).limit(pool * 4)
         ).all()
+        keyword_rows = rank_keyword_rows(candidates, terms, pool)
 
     chunks: dict[int, tuple[Chunk, float]] = {}
     for row in [*vector_rows, *keyword_rows]:

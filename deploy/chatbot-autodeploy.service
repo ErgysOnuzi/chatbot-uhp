@@ -1,0 +1,9 @@
+[Unit]
+Description=Vendosja automatike e Asistentit të Studentëve nga GitHub
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/chatbot-autodeploy
+TimeoutStartSec=30min
