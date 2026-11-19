@@ -106,12 +106,12 @@ GENERIC_TITLE_RE = re.compile(
 INTERNAL_DOCUMENT_RE = re.compile(
     r"\b(?:"
     r"te ardhura(?:t)? personale|paga|pagat|pagar|kompensime.*personel|shtesat.*paga|"
-    r"procesverbal|sistematizim.*vende.*pune|rregullore.*personel|"
+    r"procesverbal|sistematizim\w*.*vende\w*.*pun\w*|rregullore.*personel\w*|"
     r"rregullore.*administrat.*intern|udhezues.*administrat.*intern|"
     r"komision.*statutar|rregullore.*botim|rregullore.*kerkime shkencore|"
     r"rregullore.*organizim.*pune|prokurim|rregullore.*(?:financ|buxhet)|arkiva|"
-    r"kodi i etikes.*personel|angazhim.*bashkepunetore.*jashtem|organizim.*brendshem"
-    r")\w*",
+    r"kodi i etikes.*personel\w*|angazhim.*bashkepunetore.*jashtem|organizim\w*.*brendshem"
+    r")\b",
     re.IGNORECASE,
 )
 

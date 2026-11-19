@@ -223,3 +223,11 @@ def test_reingesting_unchanged_page_does_not_delete_its_own_file(tmp_path: Path)
     finally:
         crawler_module.ingest_file = original
     assert seen["exists"] is True
+
+
+def test_student_scholarship_regulation_is_not_internal():
+    assert not is_internal_document(
+        "https://uni-prizren.com/wp-content/uploads/2025/02/Rregullore-per-ndarjen-e-bursave.pdf",
+        "Rregullore mbi përcaktimin e kritereve për ndarjen e bursave, shpërblimeve dhe formave tjera "
+        "të mbështetjes financiare për studentët e Universitetit",
+    )
