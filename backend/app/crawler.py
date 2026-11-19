@@ -110,8 +110,8 @@ INTERNAL_DOCUMENT_RE = re.compile(
     r"rregullore.*administrat.*intern|udhezues.*administrat.*intern|"
     r"komision.*statutar|rregullore.*botim|rregullore.*kerkime shkencore|"
     r"rregullore.*organizim.*pune|prokurim|rregullore.*(?:financ|buxhet)|arkiva|"
-    r"kodi i etikes.*personel|angazhim.*bashkepunetore.*jashtem"
-    r")\b",
+    r"kodi i etikes.*personel|angazhim.*bashkepunetore.*jashtem|organizim.*brendshem"
+    r")\w*",
     re.IGNORECASE,
 )
 
@@ -1061,9 +1061,11 @@ class Crawler:
         if self.dry_run:
             return
 
+        # Dokumenti i vjetër fshihet para se të shkruhet skedari i ri: kur përmbajtja është e njëjtë,
+        # emri i skedarit (sipas hash-it) përputhet dhe fshirja e vjetrit do ta fshinte edhe të riun.
+        self._replace_source(db, url)
         stored = self.upload_dir / f"crawl-{digest[:16]}.txt"
         stored.write_text(text + "\n", encoding="utf-8")
-        self._replace_source(db, url)
         document = ingest_file(db, stored, title, stored.name, category, source_url=url)
         self._record_ingested(url, digest, title, "page", document.id)
 
@@ -1081,9 +1083,9 @@ class Crawler:
         if self.dry_run:
             return
 
+        self._replace_source(db, url, fallback_title=title)
         stored = self.upload_dir / f"crawl-{digest[:16]}{suffix}"
         stored.write_bytes(data)
-        self._replace_source(db, url, fallback_title=title)
         document = ingest_file(
             db,
             stored,

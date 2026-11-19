@@ -173,3 +173,53 @@ def test_regulation_versions_have_same_normalized_key():
     assert old == new
     assert old == "rregullorja per studimet bachelor"
     assert regulation_version_key("Njoftim për provime") is None
+
+
+def test_staff_regulations_with_inflected_words_are_internal():
+    base = "https://uni-prizren.com/wp-content/uploads/2025/02/x.pdf"
+    for title in (
+        "RREGULLORE PËR MASAT DHE PROCEDURAT DISIPLINORE PËR PERSONELIN AKADEMIK",
+        "RREGULLORE PËR MASAT DHE PROCEDURAT DISIPLINORE NDAJ PERSONELIT JO AKADEMIK",
+        "KODI I ETIKËS PËR PERSONELIN E UNIVERSITETIT “UKSHIN HOTI” PRIZREN",
+        "RREGULLORE PËR ORGANIZIMIN E BRENDSHËM DHE SISTEMATIZIMIN E VENDEVE TË PUNËS",
+    ):
+        assert is_internal_document(base, title), title
+    for title in (
+        "Rregullore për procedurën disiplinore për studentë",
+        "Kodi i Etikës për studentët e UUHP-së",
+        "Pagesat në SMU",
+        "Rregullore mbi përpilimin, paraqitjen dhe mbrojtjen e punimit të diplomës",
+    ):
+        assert not is_internal_document(base, title), title
+
+
+def test_reingesting_unchanged_page_does_not_delete_its_own_file(tmp_path: Path):
+    """Regresion: dokumenti i vjetër dhe i riu kanë të njëjtin emër skedari (sipas hash-it)."""
+    from app import crawler as crawler_module
+
+    crawler = crawler_module.Crawler.__new__(crawler_module.Crawler)
+    crawler.upload_dir = tmp_path
+    crawler.dry_run = False
+    crawler._skip_digest = lambda db, url, digest: False
+    crawler._record_ingested = lambda *a, **k: None
+    digest = crawler_module._sha("Teksti i faqes")
+    old_file = tmp_path / f"crawl-{digest[:16]}.txt"
+    old_file.write_text("Teksti i faqes\n", encoding="utf-8")
+
+    def replace_source(db, url, fallback_title=None):
+        old_file.unlink(missing_ok=True)  # si _replace_source: fshin skedarin e dokumentit të vjetër
+
+    crawler._replace_source = replace_source
+    seen = {}
+
+    def fake_ingest(db, path, *a, **k):
+        seen["exists"] = Path(path).exists()
+        return type("Doc", (), {"id": 1})()
+
+    original = crawler_module.ingest_file
+    crawler_module.ingest_file = fake_ingest
+    try:
+        crawler._ingest_text(None, "https://uni-prizren.com/biblioteka/", "Biblioteka", "Teksti i faqes", "Universiteti")
+    finally:
+        crawler_module.ingest_file = original
+    assert seen["exists"] is True
