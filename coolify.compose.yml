@@ -30,6 +30,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: https://chatbot-uhp.ergys.dev
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE}
+      SERVER_PUBLIC_IP: ${SERVER_PUBLIC_IP}
     volumes:
       - uploads:/app/data/uploads
       - crawl-data:/app/data

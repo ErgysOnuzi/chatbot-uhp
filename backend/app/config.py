@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 10
     max_upload_mb: int = 20
     upload_dir: str = "data/uploads"
+    # IPv4 publike e serverit, përdoret nga ndihmësi i domenit në panelin e administratës.
+    server_public_ip: str = ""
     # Dosja docs/ e projektit (në Docker montohet te /app/docs)
     docs_dir: str = ""
 

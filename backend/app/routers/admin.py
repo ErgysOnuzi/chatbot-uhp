@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..chunking import SUPPORTED_EXTENSIONS
 from ..config import settings
 from ..db import get_db
+from ..domain_setup import build_domain_plan, normalize_domain
 from ..models import Chunk, Conversation, Document, Message
 from ..rag import ingest_file
 from .. import jobs
@@ -149,6 +150,25 @@ def stats(db: Session = Depends(get_db), _: str = Depends(require_admin)):
         "recent_unanswered": list(recent_unanswered),
         "top_questions": [{"question": q, "count": n} for q, n in top_questions],
     }
+
+
+@router.get("/domain-plan")
+def domain_plan(domain: str, _: str = Depends(require_admin)):
+    """Kthen të dhënat e DNS-së dhe Coolify-t për një domen të ri."""
+    try:
+        normalized = normalize_domain(domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not settings.server_public_ip.strip():
+        raise HTTPException(
+            status_code=503,
+            detail="SERVER_PUBLIC_IP nuk është konfiguruar në server.",
+        )
+    try:
+        return build_domain_plan(normalized, settings.server_public_ip)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 # ---------- Punë në sfond: rregulloret zyrtare, pastrimi dhe crawl ----------

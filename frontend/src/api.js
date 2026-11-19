@@ -69,6 +69,8 @@ export async function login(username, password) {
 
 export const listDocuments = (token) => adminRequest('/documents', token)
 export const getStats = (token) => adminRequest('/stats', token)
+export const getDomainPlan = (token, domain) =>
+  adminRequest(`/domain-plan?domain=${encodeURIComponent(domain)}`, token)
 
 const postJson = (token, path, body) =>
   adminRequest(path, token, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })

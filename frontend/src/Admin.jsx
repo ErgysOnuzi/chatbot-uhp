@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { deleteDocument, getJob, getStats, listDocuments, login, pruneExcluded, startCrawl, startFetchOfficial, uploadDocument } from './api.js'
+import DomainSetup from "./DomainSetup.jsx"
 
 const TOKEN_KEY = 'uhp-admin-token'
 
@@ -206,6 +207,8 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      <DomainSetup token={token} onError={handleError} setNotice={setNotice} />
 
       <form className="card" onSubmit={upload}>
         <h3>Ngarko dokument të ri</h3>
