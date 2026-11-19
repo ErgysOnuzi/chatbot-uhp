@@ -624,6 +624,25 @@ def _fold(value: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", value.lower())).strip()
 
 
+SCHEDULE_TITLE_RE = re.compile(r"\b(?:orari|raspored|si?nav|ders programi)\b")
+
+
+def is_outdated_schedule(title: str, text: str = "", today: date | None = None) -> bool:
+    """Orar ligjëratash ose provimesh që i përket viteve akademike të kaluara.
+
+    Orari konsiderohet i vjetruar kur viti më i ri që përmendet në titull ose në tekst është
+    më i vjetër se viti paraprak (p.sh. në vitin 2026 ruhen oraret e 2025/2026 dhe 2026/2027).
+    Faqet që listojnë orare të shumë viteve, përfshirë vitin aktual, nuk përjashtohen.
+    """
+    if not SCHEDULE_TITLE_RE.search(_fold(title.replace("ı", "i"))):
+        return False
+    years = [int(y) for y in re.findall(r"(?<!\d)(20\d{2})(?!\d)", f"{title}\n{text}")]
+    if not years:
+        return False
+    today = today or date.today()
+    return max(years) < today.year - 1
+
+
 def is_internal_document(url: str, title: str) -> bool:
     subject = f"{_fold(unquote(url))} {_fold(title)}"
     return bool(INTERNAL_DOCUMENT_RE.search(subject) or PROJECT_MEETING_RE.search(subject))
@@ -783,6 +802,7 @@ class CrawlStats:
     generic_skipped: list[str] = field(default_factory=list)
     old_news_skipped: list[str] = field(default_factory=list)
     internal_skipped: list[str] = field(default_factory=list)
+    old_schedule_skipped: list[str] = field(default_factory=list)
     versions_removed: list[tuple[str, str]] = field(default_factory=list)
     disappeared: list[str] = field(default_factory=list)
     limit_reached: bool = False
@@ -988,6 +1008,11 @@ class Crawler:
             self.stats.internal_skipped.append(url)
             self._record_page_skip(url, text, page.title, "excluded")
             return
+        if is_outdated_schedule(page.title, text):
+            self.stats.skipped += 1
+            self.stats.old_schedule_skipped.append(url)
+            self._record_page_skip(url, text, page.title, "excluded")
+            return
 
         published_at = page.published_at or _parse_date(page.title) or publication_date_from_url(url)
         if is_news_post(url, page.categories):
@@ -1031,6 +1056,11 @@ class Crawler:
         if is_internal_document(url, title):
             self.stats.skipped += 1
             self.stats.internal_skipped.append(url)
+            self._record_page_skip(url, title, title, "excluded")
+            return
+        if is_outdated_schedule(title, url):
+            self.stats.skipped += 1
+            self.stats.old_schedule_skipped.append(url)
             self._record_page_skip(url, title, title, "excluded")
             return
         published_at = publication_date_from_url(url)
@@ -1239,6 +1269,7 @@ class Crawler:
             f"- Tituj gjenerikë të anashkaluar: {len(self.stats.generic_skipped)}",
             f"- Lajme më të vjetra se 12 muaj: {len(self.stats.old_news_skipped)}",
             f"- Dokumente të brendshme të anashkaluara: {len(self.stats.internal_skipped)}",
+            f"- Orare të viteve të kaluara të anashkaluara: {len(self.stats.old_schedule_skipped)}",
             f"- Versione të vjetra rregulloresh të hequra: {len(self.stats.versions_removed)}",
             f"- Faqe pothuajse bosh: {self.stats.empty}",
             f"- PDF të identifikuara për OCR: {len(self.stats.ocr_pdfs)}",
@@ -1275,9 +1306,10 @@ class Crawler:
         else:
             lines.append("Asnjë.")
         lines.extend(["", "## Lajme dhe dokumente të përjashtuara", ""])
-        if self.stats.old_news_skipped or self.stats.internal_skipped or self.stats.generic_skipped:
+        if self.stats.old_news_skipped or self.stats.internal_skipped or self.stats.generic_skipped or self.stats.old_schedule_skipped:
             lines.extend(f"- Lajm i vjetër ose pa datë: {url}" for url in self.stats.old_news_skipped)
             lines.extend(f"- Dokument i brendshëm: {url}" for url in self.stats.internal_skipped)
+            lines.extend(f"- Orar i vjetruar: {url}" for url in self.stats.old_schedule_skipped)
             lines.extend(f"- Titull gjenerik: {url}" for url in self.stats.generic_skipped)
         else:
             lines.append("Asnjë.")

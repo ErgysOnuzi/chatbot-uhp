@@ -22,9 +22,9 @@ from sqlalchemy.orm import Session
 
 from .chunking import SUPPORTED_EXTENSIONS
 from .config import settings
-from .crawler import CrawlConfig, URLFilter, is_internal_document, run_crawl
+from .crawler import CrawlConfig, URLFilter, is_internal_document, is_outdated_schedule, run_crawl
 from .db import SessionLocal, init_db
-from .models import Document
+from .models import Chunk, Document
 from .rag import ingest_file
 
 
@@ -119,6 +119,12 @@ def prune_excluded(config_path: Path, apply: bool, log=print) -> list[dict]:
             decision = url_filter.classify(document.source_url)
             if decision.kind == "skip" or is_internal_document(document.source_url, document.title):
                 to_delete.append((document, decision.reason or "dokument i brendshëm"))
+                continue
+            text = "\n".join(
+                db.scalars(select(Chunk.content).where(Chunk.document_id == document.id).order_by(Chunk.position)).all()
+            )
+            if is_outdated_schedule(document.title, f"{document.source_url}\n{text}"):
+                to_delete.append((document, "orar i viteve të kaluara"))
         for document, reason in to_delete:
             log(f"{'FSHIHET' if apply else 'do fshihej'}  [{reason}]  {document.title}  <{document.source_url}>")
             if apply:

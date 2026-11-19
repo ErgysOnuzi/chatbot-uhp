@@ -384,3 +384,71 @@ td {
   padding: 8px 12px;
   white-space: pre-wrap;
 }
+
+/* ---------- Pyetësori ---------- */
+.topbar nav {
+  display: flex;
+  gap: 16px;
+}
+
+.survey-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.survey-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scale {
+  display: flex;
+  gap: 8px;
+}
+
+.card .scale label {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scale label.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.scale input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scale label:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.card select,
+.card textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.survey-results td.bar {
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}

@@ -16,7 +16,7 @@ from ..chunking import SUPPORTED_EXTENSIONS
 from ..config import settings
 from ..db import get_db
 from ..models import Chunk, Conversation, Document, Message
-from ..rag import ingest_file
+from ..rag import ingest_file, retrieve
 from .. import jobs
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -112,6 +112,23 @@ def delete_document(document_id: int, db: Session = Depends(get_db), _: str = De
     db.delete(document)
     db.commit()
     return {"ok": True}
+
+
+class RetrieveRequest(BaseModel):
+    question: str
+
+
+@router.post("/debug/retrieve")
+def debug_retrieve(req: RetrieveRequest, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    """Tregon çka gjen kërkimi për një pyetje, pa e thirrur modelin gjuhësor (për diagnostikim)."""
+    trace: dict = {}
+    hits = retrieve(db, req.question, trace=trace)
+    trace["hits"] = [
+        {"chunk_id": c.id, "document": c.document.title, "position": c.position,
+         "distance": round(float(d), 4), "preview": c.content[:400]}
+        for c, d in hits
+    ]
+    return trace
 
 
 @router.get("/stats")

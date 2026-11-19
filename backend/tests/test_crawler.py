@@ -231,3 +231,20 @@ def test_student_scholarship_regulation_is_not_internal():
         "Rregullore mbi përcaktimin e kritereve për ndarjen e bursave, shpërblimeve dhe formave tjera "
         "të mbështetjes financiare për studentët e Universitetit",
     )
+
+
+def test_outdated_schedules_are_detected():
+    from datetime import date
+
+    from app.crawler import is_outdated_schedule
+
+    today = date(2026, 11, 19)
+    assert is_outdated_schedule("Orari i Provimeve - Afati i Janarit 2022 (TIT)", "", today)
+    assert is_outdated_schedule("Orari i provimeve", "Afati i janarit 2021, publikuar më 14/01/2021", today)
+    assert is_outdated_schedule("TIT (Turkçe) - Ders Programi (Kış Dönemi-2021/22)", "", today)
+    assert is_outdated_schedule("Sınav dönemi (Eylül II 2021)", "", today)
+    assert not is_outdated_schedule("Orari i ligjëratave (TIT)", "Semestri veror 2026/2027 ... 2017/18", today)
+    assert not is_outdated_schedule("Orari i ligjëratave dhe ushtrimeve", "Semestri dimëror 2025/2026", today)
+    assert not is_outdated_schedule("Orari i provimeve", "", today)  # pa vit: nuk dihet, mbahet
+    assert not is_outdated_schedule("Kalendari akademik 2021", "", today)  # nuk është orar
+    assert not is_outdated_schedule("Rregullore për përdorimin e pajisjeve të vijueshmërisë dhe monitorimin e orarit të punës (2024)", "", today)

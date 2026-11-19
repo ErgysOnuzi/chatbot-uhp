@@ -85,3 +85,21 @@ export function uploadDocument(token, file, title, category) {
   if (category) form.append('category', category)
   return adminRequest('/documents', token, { method: 'POST', body: form })
 }
+
+export async function getSurvey() {
+  const res = await fetch('/api/survey')
+  if (!res.ok) throw new Error(await errorMessage(res))
+  return res.json()
+}
+
+export async function submitSurvey(answers, program, comment) {
+  const res = await fetch('/api/survey', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answers, program: program || null, comment: comment || null }),
+  })
+  if (!res.ok) throw new Error(await errorMessage(res))
+  return res.json()
+}
+
+export const getSurveyResults = (token) => adminRequest('/survey', token)

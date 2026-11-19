@@ -82,3 +82,15 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+
+class SurveyResponse(Base):
+    """Një përgjigje anonime e pyetësorit të përdorshmërisë (Shtojca B e punimit)."""
+
+    __tablename__ = "survey_responses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    answers: Mapped[str] = mapped_column(Text)  # JSON: listë notash 1-5, një për çdo pohim
+    program: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

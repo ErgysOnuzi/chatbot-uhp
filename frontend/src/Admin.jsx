@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { deleteDocument, getJob, getStats, listDocuments, login, pruneExcluded, startCrawl, startFetchOfficial, uploadDocument } from './api.js'
+import {
+  deleteDocument,
+  getJob,
+  getStats,
+  getSurveyResults,
+  listDocuments,
+  login,
+  pruneExcluded,
+  startCrawl,
+  startFetchOfficial,
+  uploadDocument,
+} from './api.js'
 
 const TOKEN_KEY = 'uhp-admin-token'
 
@@ -61,6 +72,7 @@ export default function Admin() {
   const [token, setToken] = useState(loadToken())
   const [documents, setDocuments] = useState([])
   const [stats, setStats] = useState(null)
+  const [survey, setSurvey] = useState(null)
   const [file, setFile] = useState(null)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -85,9 +97,10 @@ export default function Admin() {
   const refresh = useCallback(async () => {
     if (!token) return
     try {
-      const [docs, st] = await Promise.all([listDocuments(token), getStats(token)])
+      const [docs, st, sv] = await Promise.all([listDocuments(token), getStats(token), getSurveyResults(token)])
       setDocuments(docs)
       setStats(st)
+      setSurvey(sv)
     } catch (err) {
       handleError(err)
     }
@@ -328,6 +341,49 @@ export default function Admin() {
               </ol>
             )}
           </div>
+        </div>
+      )}
+
+      {survey && (
+        <div className="card survey-results">
+          <h3>Pyetësori i studentëve</h3>
+          <p className="hint">
+            {survey.responses} përgjigje anonime. Lidhja për studentët: <a href="#/pyetesori">{window.location.origin}/#/pyetesori</a>
+          </p>
+          {survey.responses > 0 && (
+            <>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pohimi</th>
+                    <th>Mesatarja</th>
+                    <th>Pajtohen (4–5)</th>
+                    <th>1 / 2 / 3 / 4 / 5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {survey.statements.map((s) => (
+                    <tr key={s.statement}>
+                      <td>{s.statement}</td>
+                      <td>{s.mean?.toFixed(2)}</td>
+                      <td>{s.agree_share}%</td>
+                      <td className="bar">{s.distribution.join(' / ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {survey.comments.length > 0 && (
+                <>
+                  <h3>Komentet</h3>
+                  <ul>
+                    {survey.comments.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
     </section>

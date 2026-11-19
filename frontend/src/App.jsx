@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import Chat from './Chat.jsx'
 import Admin from './Admin.jsx'
+import Survey from './Survey.jsx'
 
 function currentRoute() {
-  return window.location.hash.startsWith('#/admin') ? 'admin' : 'chat'
+  const hash = window.location.hash
+  if (hash.startsWith('#/admin')) return 'admin'
+  if (hash.startsWith('#/pyetesori')) return 'survey'
+  return 'chat'
 }
 
 export default function App() {
@@ -26,10 +30,19 @@ export default function App() {
           </span>
         </a>
         <nav>
-          {route === 'chat' ? <a href="#/admin">Administrata</a> : <a href="#/">Kthehu te chat-i</a>}
+          {route === 'chat' ? (
+            <>
+              <a href="#/pyetesori">Pyetësori</a>
+              <a href="#/admin">Administrata</a>
+            </>
+          ) : (
+            <a href="#/">Kthehu te chat-i</a>
+          )}
         </nav>
       </header>
-      <main className="content">{route === 'admin' ? <Admin /> : <Chat />}</main>
+      <main className="content">
+        {route === 'admin' ? <Admin /> : route === 'survey' ? <Survey /> : <Chat />}
+      </main>
     </div>
   )
 }

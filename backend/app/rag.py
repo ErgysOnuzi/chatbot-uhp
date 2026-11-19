@@ -82,7 +82,7 @@ def retrieval_query(question: str, history: list[dict]) -> str:
     return question
 
 
-def retrieve(db: Session, query: str) -> list[tuple[Chunk, float]]:
+def retrieve(db: Session, query: str, trace: dict | None = None) -> list[tuple[Chunk, float]]:
     """Kërkim hibrid: semantik (pgvector) + fjalë kyçe (full-text), të bashkuara me RRF.
 
     Një pjesë përdoret si kontekst nëse është semantikisht afër pyetjes (distanca <= MAX_DISTANCE)
@@ -117,6 +117,17 @@ def retrieve(db: Session, query: str) -> list[tuple[Chunk, float]]:
     for row in [*vector_rows, *keyword_rows]:
         chunks[row[0].id] = (row[0], float(row[1]))
     fused = rrf([[r[0].id for r in vector_rows], [r[0].id for r in keyword_rows]])
+    if trace is not None:
+        def row_info(chunk: Chunk, dist: float, rank: float | None = None) -> dict:
+            info = {"chunk_id": chunk.id, "document": chunk.document.title, "position": chunk.position,
+                    "distance": round(float(dist), 4), "preview": chunk.content[:240]}
+            if rank is not None:
+                info["rank"] = round(float(rank), 4)
+            return info
+        trace["terms"] = terms
+        trace["tsquery"] = tsquery
+        trace["vector"] = [row_info(r[0], r[1]) for r in vector_rows[:10]]
+        trace["keyword"] = [row_info(r[0], r[1], r[2]) for r in keyword_rows[:10]]
 
     today = date.today()
     hits: list[tuple[Chunk, float]] = []
